@@ -459,7 +459,7 @@ public class Apps extends JFrame {
         dispIcon = new ImageIcon(temp);
         labMask.setIcon(dispIcon);
                
-        imgMask.
+        
     }
     
     public void setThumbnails() throws IOException {
