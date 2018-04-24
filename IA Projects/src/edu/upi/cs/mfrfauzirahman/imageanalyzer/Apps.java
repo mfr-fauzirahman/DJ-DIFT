@@ -130,8 +130,6 @@ public class Apps extends JFrame {
         TabPanel = new javax.swing.JTabbedPane();
         labInput = new javax.swing.JLabel();
         labInput.setHorizontalAlignment(SwingConstants.CENTER);
-        labMask = new javax.swing.JLabel();
-        labMask.setHorizontalAlignment(SwingConstants.CENTER);
         TabConfig = new javax.swing.JTabbedPane();
         pConfELA = new javax.swing.JPanel();
         labQuality = new javax.swing.JLabel();
@@ -166,12 +164,14 @@ public class Apps extends JFrame {
         labComp = new JLabel("");
         labComp.setHorizontalAlignment(SwingConstants.CENTER);
         TabPanel.addTab("Re-compressed", null, labComp, null);
+        labMask = new javax.swing.JLabel();
+        labMask.setHorizontalAlignment(SwingConstants.CENTER);
+        TabPanel.addTab("Masked Image", labMask);
         
         labThumbBig = new JLabel();
         labThumbBig.setHorizontalTextPosition(SwingConstants.CENTER);
         labThumbBig.setHorizontalAlignment(SwingConstants.CENTER);
         TabPanel.addTab("Thumbnail (Large)", null, labThumbBig, null);
-        TabPanel.addTab("Masked Image", labMask);
 
         labQuality.setFont(new Font("Tahoma", Font.PLAIN, 14)); // NOI18N
         labQuality.setText("JPEG Quality");
@@ -672,36 +672,36 @@ public class Apps extends JFrame {
     private JLabel lblThumbSize;
     private JLabel labThumbBytes;
     private JLabel lblMinChannel;
-    private JLabel labInMinR;
-    private JLabel labInMaxR;
+    private static  JLabel labInMinR;
+    private static  JLabel labInMaxR;
     private JLabel lblMaxChannelr;
     private JLabel lblMinMagnitude;
-    private JLabel labInMinB;
+    private static  JLabel labInMinB;
     private JLabel lblInputImage;
     private JLabel lblElaImage;
-    private JLabel labElaMinG;
-    private JLabel labElaMinR;
-    private JLabel labElaMaxR;
-    private JLabel labElaMaxG;
+    private static  JLabel labElaMinG;
+    private static  JLabel labElaMinR;
+    private static  JLabel labElaMaxR;
+    private static  JLabel labElaMaxG;
     private JLabel label_15;
-    private JLabel labElaMinB;
-    private JLabel labElaMaxB;
+    private static  JLabel labElaMinB;
+    private static  JLabel labElaMaxB;
     private JLabel label_1;
-    private JLabel labInMinMag;
+    private static  JLabel labInMinMag;
     private JLabel label_11;
-    private JLabel labInMaxMag;
-    private JLabel labElaMinMag;
+    private static  JLabel labInMaxMag;
+    private static  JLabel labElaMinMag;
     private JLabel label_17;
-    private JLabel labElaMaxMag;
+    private static  JLabel labElaMaxMag;
     private JLabel label_19;
     private JLabel label;
     private JLabel label_20;
     private JLabel label_2;
     private JLabel label_4;
     private JLabel label_5;
-    private JLabel labInMaxG;
-    private JLabel labInMaxB;
-    private JLabel labInMinG;
+    private static  JLabel labInMaxG;
+    private static  JLabel labInMaxB;
+    private static JLabel labInMinG;
     private JLabel label_3;
     private JLabel label_7;
     private JLabel label_9;
@@ -945,8 +945,17 @@ public class Apps extends JFrame {
     	}
     }
 
-    public void setInputStats(int[] minparams, int[] maxparams, int[] mag) {
+    public static void setInputStats(int[] minparams, int[] maxparams, int[] mag) {
+    	labInMinR.setText(minparams[0]+"");
+    	labInMinG.setText(minparams[1]+"");
+    	labInMinB.setText(minparams[2]+"");
     	
+    	labInMaxR.setText(maxparams[0]+"");
+    	labInMaxG.setText(maxparams[1]+"");
+    	labInMaxB.setText(maxparams[2]+"");
+    	
+    	labInMinMag.setText(mag[0]+"");
+    	labInMaxMag.setText(mag[1]+"");
     }
     
     public void callGC() {

@@ -11,6 +11,8 @@ import javax.imageio.ImageWriter;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.ImageOutputStream;
 
+import edu.upi.cs.mfrfauzirahman.imageanalyzer.Apps;
+
 public class ImageELA extends ImageTools {
 
 	public ImageELA() {
@@ -82,26 +84,44 @@ public class ImageELA extends ImageTools {
             int[][][] comp = RGBArray(compressed);
             int[][][] diff = new int[height][width][3];
             
-            int[] chanMaxDiff = new int[3];
-            int[] chanMinDiff = new int[3];
+            int[] chanInMax = {0,0,0};
+            int[] chanInMin = {255,255,255};
+            int[] inMag = {255, 0};
+            
+            int[] chanElaMax = {0,0,0};
+            int[] chanElaMin = {255,255,255};
+            int[] elaMag = {255, 0};
             
             for (int r = 0; r < height; r++) {
-                for (int c = 0; c < width; c++) {
+                for (int c = 0; c < width; c++) {                	
                     for (int band = 0; band < 3; band++) {
                         int d = Math.abs(original[r][c][band] - comp[r][c][band]);
-                        
                         diff[r][c][band] = d;
-                        chanMaxDiff[band] = (d > chanMaxDiff[band]) ? d : chanMaxDiff[band];
+                        
+                        int input = original[r][c][band];
+                        int elav = d;
+                        //int compr = comp[r][c][band];
+                        
+                        
+                        chanInMin[band] = (input < chanInMin[band]) ? input : chanInMin[band];
+                        chanInMax[band] = (input > chanInMax[band]) ? input : chanInMax[band];
+                        
+                        chanElaMin[band] = (elav < chanElaMin[band]) ? elav : chanElaMin[band];
+                        chanElaMax[band] = (elav > chanElaMax[band]) ? elav : chanElaMax[band];
                     }
+                    
+                    int sumMag = original[r][c][0] + original[r][c][1] + original[r][c][2];
+                    inMag[0] = (sumMag < inMag[0]) ? sumMag : inMag[0];
+                    inMag[1] = (sumMag > inMag[0]) ? sumMag : inMag[1];
+                    
+                    sumMag = diff[r][c][0] + diff[r][c][1] + diff[r][c][2];
+                    elaMag[0] = (sumMag < elaMag[0]) ? sumMag : elaMag[0];
+                    elaMag[1] = (sumMag > elaMag[0]) ? sumMag : elaMag[1];
                 }
             }
 
-            //Pick largest difference of all bands, so that no value is scaled over 255
-            int maxDiff = 0;
-            
-            for (int i = 0; i < 3; i++) {
-                maxDiff = (chanMaxDiff[i] > maxDiff) ? chanMaxDiff[i] : maxDiff;
-            }
+            Apps.setInputStats(chanInMin, chanInMax, inMag);
+          
             
             for (int r = 0; r < height; r++) {
                 for (int c = 0; c < width; c++) {
