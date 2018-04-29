@@ -59,6 +59,7 @@ import edu.upi.cs.mfrfauzirahman.imageanalyzer.utilities.ImageMask;
 import edu.upi.cs.mfrfauzirahman.imageanalyzer.utilities.ImageTools;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.JProgressBar;
 
 
 public class Apps extends JFrame {
@@ -76,6 +77,10 @@ public class Apps extends JFrame {
 	public double fileSize = 0;
 	
 	public static int[] MASK_RGB = ImageTools.MaskColor("CYAN");
+	public static int errLevel = 20;
+	public static int qualityLevel = 95;
+	public static int maskThreshold = 25;
+	public static String imgFormat = null;
 	
 	public Image img = null;
 	public Metadata metadata = null;
@@ -219,6 +224,7 @@ public class Apps extends JFrame {
         labErrScale.setFont(new Font("Tahoma", Font.PLAIN, 14));
         
         sliderErrScale = new JSlider();
+        sliderErrScale.setMinimum(1);
         sliderErrScale.setValue(20);
         sliderErrScale.addChangeListener(new ChangeListener() {
         	public void stateChanged(ChangeEvent e) {
@@ -255,11 +261,22 @@ public class Apps extends JFrame {
 
         MenuBar.add(menuFile);
         
-        mntmSaveEla = new JMenuItem("Save ELA");
+        mntmSaveRecomp = new JMenuItem("Save Recompressed Image");
+        mntmSaveRecomp.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		mSaveRecompIMG(e);
+        	}
+        });
+        menuFile.add(mntmSaveRecomp);
+        
+        mntmSaveEla = new JMenuItem("Save ELA Result");
         menuFile.add(mntmSaveEla);
         
         mntmSaveMaskedImage = new JMenuItem("Save Masked Image");
         menuFile.add(mntmSaveMaskedImage);
+        
+        mntmSaveMetadata = new JMenuItem("Save Metadata");
+        menuFile.add(mntmSaveMetadata);
 
         setJMenuBar(MenuBar);
         
@@ -347,9 +364,9 @@ public class Apps extends JFrame {
         btnDefMask.setBounds(173, 133, 67, 23);
         pConfMask.add(btnDefMask);
         
-        comboBox = new JComboBox();
-        comboBox.setBounds(10, 102, 230, 20);
-        pConfMask.add(comboBox);
+        comboMaskCol = new JComboBox();
+        comboMaskCol.setBounds(10, 102, 230, 20);
+        pConfMask.add(comboMaskCol);
         
         JPanel pDetails = new JPanel();
         TabAnalysis.addTab("Details", null, pDetails, null);
@@ -378,7 +395,7 @@ public class Apps extends JFrame {
         txtaPath.setLineWrap(true);
         txtaPath.setEditable(false);
         txtaPath.setBackground(UIManager.getColor("Button.background"));
-        txtaPath.setBounds(66, 119, 174, 109);
+        txtaPath.setBounds(66, 119, 174, 100);
         
         labFile = new JLabel("File name");
         labFile.setBounds(10, 11, 45, 14);
@@ -408,155 +425,328 @@ public class Apps extends JFrame {
         labThumbBytes.setBounds(66, 94, 174, 14);
         pDetails.add(labThumbBytes);
         
-        pStatistics = new JPanel();
-        TabAnalysis.addTab("Statistics", null, pStatistics, null);
+        loadingBar = new JProgressBar();
+        loadingBar.setBounds(10, 238, 230, 14);
+        pDetails.add(loadingBar);
+        
+        pStatisticsInput = new JPanel();
+        TabAnalysis.addTab("Input", null, pStatisticsInput, null);
         
         lblMinChannel = new JLabel("Min - Max Channel (Red)");
-        lblMinChannel.setBounds(10, 36, 146, 14);
-        pStatistics.setLayout(null);
-        pStatistics.add(lblMinChannel);
+        lblMinChannel.setBounds(10, 11, 146, 14);
+        pStatisticsInput.setLayout(null);
+        pStatisticsInput.add(lblMinChannel);
         
         labInMinR = new JLabel("0");
-        labInMinR.setBounds(166, 36, 18, 14);
-        pStatistics.add(labInMinR);
+        labInMinR.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMinR.setBounds(166, 11, 18, 14);
+        pStatisticsInput.add(labInMinR);
         
         labInMaxR = new JLabel("0");
-        labInMaxR.setBounds(222, 36, 18, 14);
-        pStatistics.add(labInMaxR);
+        labInMaxR.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMaxR.setBounds(222, 11, 18, 14);
+        pStatisticsInput.add(labInMaxR);
         
         lblMaxChannelr = new JLabel("Min - Max Channel (Green)");
-        lblMaxChannelr.setBounds(10, 61, 146, 14);
-        pStatistics.add(lblMaxChannelr);
+        lblMaxChannelr.setBounds(10, 36, 146, 14);
+        pStatisticsInput.add(lblMaxChannelr);
         
         lblMinMagnitude = new JLabel("Min - Max Channel (Blue)");
-        lblMinMagnitude.setBounds(10, 86, 146, 14);
-        pStatistics.add(lblMinMagnitude);
+        lblMinMagnitude.setBounds(10, 61, 146, 14);
+        pStatisticsInput.add(lblMinMagnitude);
         
         labInMinB = new JLabel("0");
-        labInMinB.setBounds(166, 86, 18, 14);
-        pStatistics.add(labInMinB);
+        labInMinB.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMinB.setBounds(166, 61, 18, 14);
+        pStatisticsInput.add(labInMinB);
         
-        lblInputImage = new JLabel("Input");
-        lblInputImage.setFont(new Font("Tahoma", Font.BOLD, 11));
-        lblInputImage.setBounds(10, 11, 119, 14);
-        pStatistics.add(lblInputImage);
-        
-        lblElaImage = new JLabel("ELA Image");
-        lblElaImage.setFont(new Font("Tahoma", Font.BOLD, 11));
-        lblElaImage.setBounds(10, 138, 119, 14);
-        pStatistics.add(lblElaImage);
-        
-        labElaMinG = new JLabel("0");
-        labElaMinG.setBounds(166, 188, 18, 14);
-        pStatistics.add(labElaMinG);
-        
-        labElaMinR = new JLabel("0");
-        labElaMinR.setBounds(166, 163, 18, 14);
-        pStatistics.add(labElaMinR);
-        
-        labElaMaxR = new JLabel("0");
-        labElaMaxR.setBounds(222, 163, 18, 14);
-        pStatistics.add(labElaMaxR);
-        
-        labElaMaxG = new JLabel("0");
-        labElaMaxG.setBounds(222, 188, 18, 14);
-        pStatistics.add(labElaMaxG);
+        labInAvgMag = new JLabel("0");
+        labInAvgMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labInAvgMag.setBounds(166, 136, 74, 14);
+        pStatisticsInput.add(labInAvgMag);
         
         label_15 = new JLabel("-");
         label_15.setHorizontalAlignment(SwingConstants.CENTER);
-        label_15.setBounds(194, 86, 18, 14);
-        pStatistics.add(label_15);
-        
-        labElaMinB = new JLabel("0");
-        labElaMinB.setBounds(166, 213, 18, 14);
-        pStatistics.add(labElaMinB);
-        
-        labElaMaxB = new JLabel("0");
-        labElaMaxB.setBounds(222, 213, 18, 14);
-        pStatistics.add(labElaMaxB);
+        label_15.setBounds(194, 61, 18, 14);
+        pStatisticsInput.add(label_15);
         
         label_1 = new JLabel("Min - Max Magnitude");
-        label_1.setBounds(10, 111, 146, 14);
-        pStatistics.add(label_1);
+        label_1.setBounds(10, 86, 146, 14);
+        pStatisticsInput.add(label_1);
         
         labInMinMag = new JLabel("0");
-        labInMinMag.setBounds(166, 111, 18, 14);
-        pStatistics.add(labInMinMag);
+        labInMinMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMinMag.setBounds(166, 86, 18, 14);
+        pStatisticsInput.add(labInMinMag);
         
         label_11 = new JLabel("-");
         label_11.setHorizontalAlignment(SwingConstants.CENTER);
-        label_11.setBounds(194, 111, 18, 14);
-        pStatistics.add(label_11);
+        label_11.setBounds(194, 86, 18, 14);
+        pStatisticsInput.add(label_11);
         
         labInMaxMag = new JLabel("0");
-        labInMaxMag.setBounds(222, 111, 18, 14);
-        pStatistics.add(labInMaxMag);
-        
-        labElaMinMag = new JLabel("0");
-        labElaMinMag.setBounds(166, 238, 18, 14);
-        pStatistics.add(labElaMinMag);
-        
-        label_17 = new JLabel("-");
-        label_17.setHorizontalAlignment(SwingConstants.CENTER);
-        label_17.setBounds(194, 238, 18, 14);
-        pStatistics.add(label_17);
-        
-        labElaMaxMag = new JLabel("0");
-        labElaMaxMag.setBounds(222, 238, 18, 14);
-        pStatistics.add(labElaMaxMag);
-        
-        label_19 = new JLabel("Min - Max Magnitude");
-        label_19.setBounds(10, 238, 119, 14);
-        pStatistics.add(label_19);
+        labInMaxMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMaxMag.setBounds(222, 86, 18, 14);
+        pStatisticsInput.add(labInMaxMag);
         
         label = new JLabel("-");
         label.setHorizontalAlignment(SwingConstants.CENTER);
-        label.setBounds(194, 36, 18, 14);
-        pStatistics.add(label);
+        label.setBounds(194, 11, 18, 14);
+        pStatisticsInput.add(label);
         
         label_20 = new JLabel("-");
         label_20.setHorizontalAlignment(SwingConstants.CENTER);
-        label_20.setBounds(194, 61, 18, 14);
-        pStatistics.add(label_20);
+        label_20.setBounds(194, 36, 18, 14);
+        pStatisticsInput.add(label_20);
         
-        label_2 = new JLabel("Min - Max Channel (Red)");
-        label_2.setBounds(10, 163, 146, 14);
-        pStatistics.add(label_2);
-        
-        label_4 = new JLabel("Min - Max Channel (Green)");
-        label_4.setBounds(10, 188, 146, 14);
-        pStatistics.add(label_4);
-        
-        label_5 = new JLabel("Min - Max Channel (Blue)");
-        label_5.setBounds(10, 213, 146, 14);
-        pStatistics.add(label_5);
+        labIn = new JLabel("Average Magnitude");
+        labIn.setBounds(10, 136, 146, 14);
+        pStatisticsInput.add(labIn);
         
         labInMaxG = new JLabel("0");
-        labInMaxG.setBounds(222, 61, 18, 14);
-        pStatistics.add(labInMaxG);
+        labInMaxG.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMaxG.setBounds(222, 36, 18, 14);
+        pStatisticsInput.add(labInMaxG);
         
         labInMaxB = new JLabel("0");
-        labInMaxB.setBounds(222, 86, 18, 14);
-        pStatistics.add(labInMaxB);
+        labInMaxB.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMaxB.setBounds(222, 61, 18, 14);
+        pStatisticsInput.add(labInMaxB);
         
         labInMinG = new JLabel("0");
-        labInMinG.setBounds(166, 61, 18, 14);
-        pStatistics.add(labInMinG);
+        labInMinG.setHorizontalAlignment(SwingConstants.CENTER);
+        labInMinG.setBounds(166, 36, 18, 14);
+        pStatisticsInput.add(labInMinG);
         
-        label_3 = new JLabel("-");
-        label_3.setHorizontalAlignment(SwingConstants.CENTER);
-        label_3.setBounds(194, 213, 18, 14);
-        pStatistics.add(label_3);
+        lblAverageValuer = new JLabel("Average Value (R, G, B)");
+        lblAverageValuer.setBounds(10, 111, 146, 14);
+        pStatisticsInput.add(lblAverageValuer);
         
-        label_7 = new JLabel("-");
-        label_7.setHorizontalAlignment(SwingConstants.CENTER);
-        label_7.setBounds(194, 188, 18, 14);
-        pStatistics.add(label_7);
+        labInAvgR = new JLabel("");
+        labInAvgR.setBounds(166, 111, 18, 14);
+        pStatisticsInput.add(labInAvgR);
+        
+        labInAvgG = new JLabel("");
+        labInAvgG.setBounds(194, 111, 18, 14);
+        pStatisticsInput.add(labInAvgG);
+        
+        labInAvgB = new JLabel("");
+        labInAvgB.setBounds(222, 111, 18, 14);
+        pStatisticsInput.add(labInAvgB);
+        
+        panel = new JPanel();
+        panel.setLayout(null);
+        TabAnalysis.addTab("Recompressed", null, panel, null);
+        
+        label_2 = new JLabel("Min - Max Channel (Red)");
+        label_2.setBounds(10, 11, 146, 14);
+        panel.add(label_2);
+        
+        labRecMinR = new JLabel("0");
+        labRecMinR.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMinR.setBounds(166, 11, 18, 14);
+        panel.add(labRecMinR);
+        
+        labRecMaxR = new JLabel("0");
+        labRecMaxR.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMaxR.setBounds(222, 11, 18, 14);
+        panel.add(labRecMaxR);
+        
+        label_5 = new JLabel("Min - Max Channel (Green)");
+        label_5.setBounds(10, 36, 146, 14);
+        panel.add(label_5);
+        
+        label_6 = new JLabel("Min - Max Channel (Blue)");
+        label_6.setBounds(10, 61, 146, 14);
+        panel.add(label_6);
+        
+        labRecMinB = new JLabel("0");
+        labRecMinB.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMinB.setBounds(166, 61, 18, 14);
+        panel.add(labRecMinB);
+        
+        labRecAvgMag = new JLabel("0");
+        labRecAvgMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecAvgMag.setBounds(166, 136, 74, 14);
+        panel.add(labRecAvgMag);
         
         label_9 = new JLabel("-");
         label_9.setHorizontalAlignment(SwingConstants.CENTER);
-        label_9.setBounds(194, 163, 18, 14);
-        pStatistics.add(label_9);
+        label_9.setBounds(194, 61, 18, 14);
+        panel.add(label_9);
+        
+        label_10 = new JLabel("Min - Max Magnitude");
+        label_10.setBounds(10, 86, 146, 14);
+        panel.add(label_10);
+        
+        labRecMinMag = new JLabel("0");
+        labRecMinMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMinMag.setBounds(166, 86, 18, 14);
+        panel.add(labRecMinMag);
+        
+        label_13 = new JLabel("-");
+        label_13.setHorizontalAlignment(SwingConstants.CENTER);
+        label_13.setBounds(194, 86, 18, 14);
+        panel.add(label_13);
+        
+        labRecMaxMag = new JLabel("0");
+        labRecMaxMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMaxMag.setBounds(222, 86, 18, 14);
+        panel.add(labRecMaxMag);
+        
+        label_16 = new JLabel("-");
+        label_16.setHorizontalAlignment(SwingConstants.CENTER);
+        label_16.setBounds(194, 11, 18, 14);
+        panel.add(label_16);
+        
+        label_17 = new JLabel("-");
+        label_17.setHorizontalAlignment(SwingConstants.CENTER);
+        label_17.setBounds(194, 36, 18, 14);
+        panel.add(label_17);
+        
+        label_18 = new JLabel("Average Magnitude");
+        label_18.setBounds(10, 136, 146, 14);
+        panel.add(label_18);
+        
+        labRecMaxG = new JLabel("0");
+        labRecMaxG.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMaxG.setBounds(222, 36, 18, 14);
+        panel.add(labRecMaxG);
+        
+        labRecMaxB = new JLabel("0");
+        labRecMaxB.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMaxB.setBounds(222, 61, 18, 14);
+        panel.add(labRecMaxB);
+        
+        labRecMinG = new JLabel("0");
+        labRecMinG.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecMinG.setBounds(166, 36, 18, 14);
+        panel.add(labRecMinG);
+        
+        label_23 = new JLabel("Average Value (R, G, B)");
+        label_23.setBounds(10, 111, 146, 14);
+        panel.add(label_23);
+        
+        labRecAvgR = new JLabel("");
+        labRecAvgR.setBounds(166, 111, 18, 14);
+        panel.add(labRecAvgR);
+        
+        labRecAvgG = new JLabel("");
+        labRecAvgG.setBounds(194, 111, 18, 14);
+        panel.add(labRecAvgG);
+        
+        labRecAvgB = new JLabel("");
+        labRecAvgB.setBounds(222, 111, 18, 14);
+        panel.add(labRecAvgB);
+        
+        pStatisticsELA = new JPanel();
+        pStatisticsELA.setLayout(null);
+        TabAnalysis.addTab("Statistics (ELA)", null, pStatisticsELA, null);
+        
+        label_27 = new JLabel("Min - Max Channel (Red)");
+        label_27.setBounds(10, 11, 146, 14);
+        pStatisticsELA.add(label_27);
+        
+        labElaMinR = new JLabel("0");
+        labElaMinR.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMinR.setBounds(166, 11, 18, 14);
+        pStatisticsELA.add(labElaMinR);
+        
+        labElaMaxR = new JLabel("0");
+        labElaMaxR.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMaxR.setBounds(222, 11, 18, 14);
+        pStatisticsELA.add(labElaMaxR);
+        
+        label_30 = new JLabel("Min - Max Channel (Green)");
+        label_30.setBounds(10, 36, 146, 14);
+        pStatisticsELA.add(label_30);
+        
+        label_31 = new JLabel("Min - Max Channel (Blue)");
+        label_31.setBounds(10, 61, 146, 14);
+        pStatisticsELA.add(label_31);
+        
+        labElaMinB = new JLabel("0");
+        labElaMinB.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMinB.setBounds(166, 61, 18, 14);
+        pStatisticsELA.add(labElaMinB);
+        
+        labElaAvgMag = new JLabel("0");
+        labElaAvgMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaAvgMag.setBounds(166, 136, 74, 14);
+        pStatisticsELA.add(labElaAvgMag);
+        
+        label_34 = new JLabel("-");
+        label_34.setHorizontalAlignment(SwingConstants.CENTER);
+        label_34.setBounds(194, 61, 18, 14);
+        pStatisticsELA.add(label_34);
+        
+        label_35 = new JLabel("Min - Max Magnitude");
+        label_35.setBounds(10, 86, 146, 14);
+        pStatisticsELA.add(label_35);
+        
+        labElaMinMag = new JLabel("0");
+        labElaMinMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMinMag.setBounds(166, 86, 18, 14);
+        pStatisticsELA.add(labElaMinMag);
+        
+        label_37 = new JLabel("-");
+        label_37.setHorizontalAlignment(SwingConstants.CENTER);
+        label_37.setBounds(194, 86, 18, 14);
+        pStatisticsELA.add(label_37);
+        
+        labElaMaxMag = new JLabel("0");
+        labElaMaxMag.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMaxMag.setBounds(222, 86, 18, 14);
+        pStatisticsELA.add(labElaMaxMag);
+        
+        label_39 = new JLabel("-");
+        label_39.setHorizontalAlignment(SwingConstants.CENTER);
+        label_39.setBounds(194, 11, 18, 14);
+        pStatisticsELA.add(label_39);
+        
+        label_40 = new JLabel("-");
+        label_40.setHorizontalAlignment(SwingConstants.CENTER);
+        label_40.setBounds(194, 36, 18, 14);
+        pStatisticsELA.add(label_40);
+        
+        label_41 = new JLabel("Average Magnitude");
+        label_41.setBounds(10, 136, 146, 14);
+        pStatisticsELA.add(label_41);
+        
+        labElaMaxG = new JLabel("0");
+        labElaMaxG.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMaxG.setBounds(222, 36, 18, 14);
+        pStatisticsELA.add(labElaMaxG);
+        
+        labElaMaxB = new JLabel("0");
+        labElaMaxB.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMaxB.setBounds(222, 61, 18, 14);
+        pStatisticsELA.add(labElaMaxB);
+        
+        labElaMinG = new JLabel("0");
+        labElaMinG.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaMinG.setBounds(166, 36, 18, 14);
+        pStatisticsELA.add(labElaMinG);
+        
+        label_45 = new JLabel("Average Value (R, G, B)");
+        label_45.setBounds(10, 111, 146, 14);
+        pStatisticsELA.add(label_45);
+        
+        labElaAvgR = new JLabel("");
+        labElaAvgR.setHorizontalTextPosition(SwingConstants.CENTER);
+        labElaAvgR.setBounds(166, 111, 18, 14);
+        pStatisticsELA.add(labElaAvgR);
+        
+        labElaAvgB = new JLabel("");
+        labElaAvgB.setHorizontalTextPosition(SwingConstants.CENTER);
+        labElaAvgB.setBounds(222, 111, 18, 14);
+        pStatisticsELA.add(labElaAvgB);
+        
+        labElaAvgG = new JLabel("");
+        labElaAvgG.setHorizontalTextPosition(SwingConstants.CENTER);
+        labElaAvgG.setHorizontalAlignment(SwingConstants.CENTER);
+        labElaAvgG.setBounds(194, 111, 18, 14);
+        pStatisticsELA.add(labElaAvgG);
         getContentPane().setLayout(layout);
         
         spMetadata = new JScrollPane();
@@ -654,7 +844,7 @@ public class Apps extends JFrame {
     private JLabel labFileNameVal;
     private JTextArea txtaPath;
     private JLabel labThumbBig;
-    private JPanel pStatistics;
+    private JPanel pStatisticsInput;
     private JLabel labFile;
     private JLabel labValE;
     private JPanel pConfMask;
@@ -664,7 +854,7 @@ public class Apps extends JFrame {
     private JLabel lblMaskColor;
     private JButton btnConfMask;
     private JButton btnDefMask;
-    private JComboBox comboBox;
+    private JComboBox comboMaskCol;
     private JTabbedPane TabThumb;
     private JLabel labThumbSmall;
     private JLabel lblThumbnail;
@@ -677,34 +867,71 @@ public class Apps extends JFrame {
     private JLabel lblMaxChannelr;
     private JLabel lblMinMagnitude;
     private static  JLabel labInMinB;
-    private JLabel lblInputImage;
-    private JLabel lblElaImage;
-    private static  JLabel labElaMinG;
-    private static  JLabel labElaMinR;
-    private static  JLabel labElaMaxR;
-    private static  JLabel labElaMaxG;
+    private static  JLabel labInAvgMag;
     private JLabel label_15;
-    private static  JLabel labElaMinB;
-    private static  JLabel labElaMaxB;
     private JLabel label_1;
     private static  JLabel labInMinMag;
     private JLabel label_11;
     private static  JLabel labInMaxMag;
-    private static  JLabel labElaMinMag;
-    private JLabel label_17;
-    private static  JLabel labElaMaxMag;
-    private JLabel label_19;
     private JLabel label;
     private JLabel label_20;
-    private JLabel label_2;
-    private JLabel label_4;
-    private JLabel label_5;
+    private JLabel labIn;
     private static  JLabel labInMaxG;
     private static  JLabel labInMaxB;
     private static JLabel labInMinG;
-    private JLabel label_3;
-    private JLabel label_7;
+    private JLabel lblAverageValuer;
+    private static JLabel labInAvgR;
+    private static JLabel labInAvgG;
+    private static JLabel labInAvgB;
+    private JPanel panel;
+    private JLabel label_2;
+    private static JLabel labRecMinR;
+    private static JLabel labRecMaxR;
+    private JLabel label_5;
+    private JLabel label_6;
+    private static JLabel labRecMinB;
+    private static JLabel labRecAvgMag;
     private JLabel label_9;
+    private JLabel label_10;
+    private static JLabel labRecMinMag;
+    private JLabel label_13;
+    private static JLabel labRecMaxMag;
+    private JLabel label_16;
+    private JLabel label_17;
+    private JLabel label_18;
+    private static JLabel labRecMaxG;
+    private static JLabel labRecMaxB;
+    private static JLabel labRecMinG;
+    private JLabel label_23;
+    private static JLabel labRecAvgR;
+    private static JLabel labRecAvgG;
+    private static JLabel labRecAvgB;
+    private JPanel pStatisticsELA;
+    private JLabel label_27;
+    private static  JLabel labElaMinR;
+    private static  JLabel labElaMaxR;
+    private JLabel label_30;
+    private JLabel label_31;
+    private static  JLabel labElaMinB;
+    private static  JLabel labElaAvgMag;
+    private JLabel label_34;
+    private JLabel label_35;
+    private static  JLabel labElaMinMag;
+    private JLabel label_37;
+    private static JLabel labElaMaxMag;
+    private JLabel label_39;
+    private JLabel label_40;
+    private JLabel label_41;
+    private static  JLabel labElaMaxG;
+    private static  JLabel labElaMaxB;
+    private static  JLabel labElaMinG;
+    private JLabel label_45;
+    private static  JLabel labElaAvgR;
+    private static  JLabel labElaAvgB;
+    private static  JLabel labElaAvgG;
+    private JMenuItem mntmSaveRecomp;
+    private JMenuItem mntmSaveMetadata;
+    private static JProgressBar loadingBar;
     
     /**
      * Application Methods
@@ -720,6 +947,15 @@ public class Apps extends JFrame {
             input = fc.getSelectedFile();
             
             try {
+            	imgFormat = FilenameUtils.getExtension(input.getName());
+            	FileUtils.copyFile(input, new File("data/input.jpg"));
+            	//FileUtils.copyFile(input, new File("data/input."+imgFormat));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+            try {
                 imgInput = ImageIO.read(input);
                 applyConfigELA();                
             } catch (IOException | ImageProcessingException ex) {
@@ -733,13 +969,6 @@ public class Apps extends JFrame {
             } catch (IOException | ImageProcessingException ex) {
                 Logger.getLogger(Apps.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
-            try {
-				FileUtils.copyFile(input, new File("data/input."+FilenameUtils.getExtension(input.getName())));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
             
             applyMask();
             chkThumb();
@@ -760,6 +989,19 @@ public class Apps extends JFrame {
         }
     }//GEN-LAST:event_mOpenIMGActionPerformed
         
+    void mSaveRecompIMG(ActionEvent evt) {
+    	final JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new FileNameExtensionFilter("Image Files (JPG/JPEG/PNG)", "jpg", "jpeg", "png"));
+        int result = fc.showSaveDialog(MenuBar);
+        if (result == JFileChooser.APPROVE_OPTION) {
+        	try {
+				FileUtils.copyFile(new File("data/recompressed.jpg"), fc.getSelectedFile());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
+    }
     /*
      *	Application methods
      */
@@ -776,7 +1018,7 @@ public class Apps extends JFrame {
         }
     }    
     
-    public void runAnalysis(float compLevel, int errScale) throws IOException, ImageProcessingException{  
+    private void runAnalysis() throws IOException, ImageProcessingException{  
     	
         imgWidth = imgInput.getWidth();        
         imgHeight = imgInput.getHeight();
@@ -802,60 +1044,66 @@ public class Apps extends JFrame {
         	imgProcess = ImageELA.GetCompressedImage(imgInput, compLevel);
         }else {imgProcess = imgInput;}
         */
-        
-        imgRecomp = ImageELA.GetCompressedImage(imgInput, compLevel);
+        setTitle("Digital Image Forensics Tools (Status: Rebuilding Image @ "+qualityLevel+"% Quality Level...)");
+        imgRecomp = ImageELA.GetCompressedImage(imgInput, (float) qualityLevel / 100);
         img = imgRecomp.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
         imgIco = new ImageIcon(img);
         labComp.setIcon(imgIco);
-        outputfile = new File("data/recompressed.png");
-        ImageIO.write(imgRecomp, "png", outputfile);
+        outputfile = new File("data/recompressed.jpg");
+        //outputfile = new File("data/recompressed."+imgFormat);
+        ImageIO.write(imgRecomp, imgFormat, outputfile);
         
-        imgELA = ImageELA.GetDifferenceImage(imgInput, imgRecomp, errScale);
+        setTitle("Digital Image Forensics Tools (Status: Processing Error Level Analysis @ "+errLevel+" Error Scale...)");
+        imgELA = ImageELA.GetDifferenceImage(imgInput, imgRecomp, errLevel);
         img = imgELA.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
         imgIco = new ImageIcon(img);
         labELA.setIcon(imgIco);
-        outputfile = new File("data/ELA.png");
-        ImageIO.write(imgELA, "png", outputfile);
+        outputfile = new File("data/ELA."+imgFormat);
+        ImageIO.write(imgELA, imgFormat, outputfile);
         
+
         applyMask();
         
         callGC();
     }
     
     public void applyConfigELA() throws ImageProcessingException, IOException {
-    	setTitle("Digital Image Forensics Tools (Status: Processing Error Level Analysis...)");
-    	labELA.setIcon(null);
-    	float compLevel = (float) sliderQuality.getValue() / 100;
-    	int errLevel = sliderErrScale.getValue();
-    	runAnalysis(compLevel, errLevel);
-    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	if(input != null) {
+    		labELA.setIcon(null);
+        	runAnalysis();
+        	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	}
     }
     
     public void defaultConfigELA() {
-    	setTitle("Digital Image Forensics Tools (Status: Processing Error Level Analysis...)");
+    	
     	sliderQuality.setValue(95);
     	sliderErrScale.setValue(20);
-    	try {
-			runAnalysis(0.95f, 20);
-		} catch (ImageProcessingException | IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	if(input != null) {
+	    	try {
+				runAnalysis();
+			} catch (ImageProcessingException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	}
     }
     
     public void updQVal() {
+    	qualityLevel = sliderQuality.getValue();
     	sliderQuality.setToolTipText(String.valueOf(sliderQuality.getValue()));   	
     	labValQ.setText(String.valueOf(sliderQuality.getValue())+"%");
     }
     
     public void updErrVal() {
+    	errLevel = sliderErrScale.getValue();
     	sliderErrScale.setToolTipText(String.valueOf(sliderErrScale.getValue()));   	
     	labValE.setText(String.valueOf(sliderErrScale.getValue())+"%");
     }
     
-    public void runMask(int threshold) {
-    	imgMask = ImageMask.MaskImages(imgInput, imgELA, MASK_RGB, threshold);
+    public void runMask() {
+    	imgMask = ImageMask.MaskImages(imgInput, imgELA, MASK_RGB, maskThreshold, errLevel);
         img = imgMask.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
         imgIco = new ImageIcon(img);
         labMask.setIcon(imgIco);
@@ -863,20 +1111,24 @@ public class Apps extends JFrame {
     }
     
     public void applyMask() {
-    	setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
-    	int threshold = sliderThresh.getValue();
-    	runMask(threshold);
-    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");    	
+    	if(input != null) {
+    		setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
+        	runMask();
+        	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	}
     }
     
     public void defMask() {
-    	setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
-    	sliderThresh.setValue(25);
-    	runMask(25);
-    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	if(input != null) {
+	    	setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
+	    	sliderThresh.setValue(25);
+	    	runMask();
+	    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+    	}
     }
     
     public void updTVal() {
+    	maskThreshold = sliderThresh.getValue();
     	sliderThresh.setToolTipText(String.valueOf(sliderThresh.getValue()));   	
     	labValT.setText(String.valueOf(sliderThresh.getValue()));
     }
@@ -916,6 +1168,8 @@ public class Apps extends JFrame {
     public void setThumb() {
     	if(thumbExists == true) {
     		try {
+    			labThumbSmall.setText(null);
+        		labThumbBig.setText(null);
 				imgThumb = ImageIO.read(new File("data/thumbnail.jpg"));
 				img = imgThumb.getScaledInstance(imgThumb.getWidth(), imgThumb.getHeight(), Image.SCALE_SMOOTH);
 		        imgIco = new ImageIcon(img);
@@ -945,7 +1199,7 @@ public class Apps extends JFrame {
     	}
     }
 
-    public static void setInputStats(int[] minparams, int[] maxparams, int[] mag) {
+    public static void setInputStats(int[] minparams, int[] maxparams, int[] mag, int[] avgparams, float avgmag) {
     	labInMinR.setText(minparams[0]+"");
     	labInMinG.setText(minparams[1]+"");
     	labInMinB.setText(minparams[2]+"");
@@ -956,6 +1210,58 @@ public class Apps extends JFrame {
     	
     	labInMinMag.setText(mag[0]+"");
     	labInMaxMag.setText(mag[1]+"");
+    	
+    	labInAvgR.setText(avgparams[0]+"");
+    	labInAvgG.setText(avgparams[1]+"");
+    	labInAvgB.setText(avgparams[2]+"");
+    	
+    	labInAvgMag.setText(avgmag+"");
+    }
+    
+    public static void setRecompStats(int[] minparams, int[] maxparams, int[] mag, int[] avgparams, float avgmag) {
+    	labRecMinR.setText(minparams[0]+"");
+    	labRecMinG.setText(minparams[1]+"");
+    	labRecMinB.setText(minparams[2]+"");
+    	
+    	labRecMaxR.setText(maxparams[0]+"");
+    	labRecMaxG.setText(maxparams[1]+"");
+    	labRecMaxB.setText(maxparams[2]+"");
+    	
+    	labRecMinMag.setText(mag[0]+"");
+    	labRecMaxMag.setText(mag[1]+"");
+    	
+    	labRecAvgR.setText(avgparams[0]+"");
+    	labRecAvgG.setText(avgparams[1]+"");
+    	labRecAvgB.setText(avgparams[2]+"");
+    	
+    	labRecAvgMag.setText(avgmag+"");
+    }
+    
+    public static void setElaStats(int[] minparams, int[] maxparams, int[] mag, int[] avgparams, float avgmag) {
+    	labElaMinR.setText(minparams[0]+"");
+    	labElaMinG.setText(minparams[1]+"");
+    	labElaMinB.setText(minparams[2]+"");
+    	
+    	labElaMaxR.setText(maxparams[0]+"");
+    	labElaMaxG.setText(maxparams[1]+"");
+    	labElaMaxB.setText(maxparams[2]+"");
+    	labElaMaxR.setToolTipText(maxparams[0]+"");
+    	labElaMaxG.setToolTipText(maxparams[1]+"");
+    	labElaMaxB.setToolTipText(maxparams[2]+"");
+    	
+    	labElaMinMag.setText(mag[0]+"");
+    	labElaMaxMag.setText(mag[1]+"");
+    	labElaMaxMag.setToolTipText(mag[1]+"");
+    	
+    	labElaAvgR.setText(avgparams[0]+"");
+    	labElaAvgG.setText(avgparams[1]+"");
+    	labElaAvgB.setText(avgparams[2]+"");
+    	
+    	labElaAvgMag.setText(avgmag+"");
+    }
+       
+    public static void setProgress(int progress) {
+    	loadingBar.setValue(progress);
     }
     
     public void callGC() {

@@ -20,7 +20,7 @@ public class ImageMask extends ImageTools{
      * @return              BufferedImage where the base image has 'changed' pixels masked.
      */
     public static BufferedImage MaskImages(BufferedImage baseImage, BufferedImage maskImage,
-            int[] maskColor, int threshold) {
+            int[] maskColor, int threshold, int scale) {
         BufferedImage result = null;
         int height = baseImage.getHeight();
         int width = baseImage.getWidth();
@@ -41,7 +41,7 @@ public class ImageMask extends ImageTools{
                     }
                     
                     //If pixel magnitude > threshold, then mask w/ color
-                    if (sumMaskPixel > threshold) {
+                    if (sumMaskPixel > threshold * scale) {
                         imgResult[r][c] = maskColor;
                     } else {
                         imgResult[r][c] = imgOrig[r][c];

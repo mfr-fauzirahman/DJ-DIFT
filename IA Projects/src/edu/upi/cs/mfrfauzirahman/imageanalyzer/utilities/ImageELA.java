@@ -83,15 +83,26 @@ public class ImageELA extends ImageTools {
             int[][][] original = RGBArray(image);
             int[][][] comp = RGBArray(compressed);
             int[][][] diff = new int[height][width][3];
+            int sumMag = 0;
             
-            int[] chanInMax = {0,0,0};
             int[] chanInMin = {255,255,255};
-            int[] inMag = {255, 0};
+            int[] chanInMax = {0,0,0};
+            int[] chanInAvg = {0, 0, 0};
+            int[] magIn = {255, 0};
+            float magInAvg = 0;
             
-            int[] chanElaMax = {0,0,0};
+            int[] chanRecMin = {255,255,255};
+            int[] chanRecMax = {0,0,0};
+            int[] chanRecAvg = {0, 0, 0};
+            int[] magRec = {255, 0};
+            float magRecAvg = 0;
+            
             int[] chanElaMin = {255,255,255};
-            int[] elaMag = {255, 0};
-            
+            int[] chanElaMax = {0,0,0};
+            int[] chanElaAvg = {0, 0, 0};
+            int[] magEla = {255, 0};
+            float magElaAvg = 0;
+          
             for (int r = 0; r < height; r++) {
                 for (int c = 0; c < width; c++) {                	
                     for (int band = 0; band < 3; band++) {
@@ -99,35 +110,64 @@ public class ImageELA extends ImageTools {
                         diff[r][c][band] = d;
                         
                         int input = original[r][c][band];
-                        int elav = d;
-                        //int compr = comp[r][c][band];
-                        
+                        int compr = comp[r][c][band];
+                        int eladiff = diff[r][c][band];
                         
                         chanInMin[band] = (input < chanInMin[band]) ? input : chanInMin[band];
                         chanInMax[band] = (input > chanInMax[band]) ? input : chanInMax[band];
+                        chanInAvg[band] = chanInAvg[band] + input; 
                         
-                        chanElaMin[band] = (elav < chanElaMin[band]) ? elav : chanElaMin[band];
-                        chanElaMax[band] = (elav > chanElaMax[band]) ? elav : chanElaMax[band];
+                        chanRecMin[band] = (compr < chanRecMin[band]) ? compr : chanRecMin[band];
+                        chanRecMax[band] = (compr > chanRecMax[band]) ? compr : chanRecMax[band];
+                        chanRecAvg[band] = chanRecAvg[band] + compr; 
+
+                        chanElaMin[band] = (eladiff < chanElaMin[band]) ? eladiff : chanElaMin[band];
+                        chanElaMax[band] = (eladiff > chanElaMax[band]) ? eladiff : chanElaMax[band];
+                        chanElaAvg[band] = chanElaAvg[band] + eladiff; 
                     }
                     
-                    int sumMag = original[r][c][0] + original[r][c][1] + original[r][c][2];
-                    inMag[0] = (sumMag < inMag[0]) ? sumMag : inMag[0];
-                    inMag[1] = (sumMag > inMag[0]) ? sumMag : inMag[1];
+                    sumMag = original[r][c][0] + original[r][c][1] + original[r][c][2];
+                    magInAvg = magInAvg + sumMag;
+                    magIn[0] = (sumMag < magIn[0]) ? sumMag : magIn[0];
+                    magIn[1] = (sumMag > magIn[1]) ? sumMag : magIn[1];
+                    
+                    sumMag = comp[r][c][0] + comp[r][c][1] + comp[r][c][2];
+                    magRecAvg = magRecAvg + sumMag;
+                    magRec[0] = (sumMag < magRec[0]) ? sumMag : magRec[0];
+                    magRec[1] = (sumMag > magRec[1]) ? sumMag : magRec[1];
                     
                     sumMag = diff[r][c][0] + diff[r][c][1] + diff[r][c][2];
-                    elaMag[0] = (sumMag < elaMag[0]) ? sumMag : elaMag[0];
-                    elaMag[1] = (sumMag > elaMag[0]) ? sumMag : elaMag[1];
+                    magElaAvg = magElaAvg + sumMag;
+                    magEla[0] = (sumMag < magEla[0]) ? sumMag : magEla[0];
+                    magEla[1] = (sumMag > magEla[1]) ? sumMag : magEla[1];
+                  
                 }
             }
+            
+            magInAvg = magInAvg / (height * width);
+            chanInAvg[0] = chanInAvg[0] / (height * width);
+            chanInAvg[1] = chanInAvg[1] / (height * width);
+            chanInAvg[2] = chanInAvg[2] / (height * width);
+            
+            magRecAvg = magRecAvg / (height * width);
+            chanRecAvg[0] = chanRecAvg[0] / (height * width);
+            chanRecAvg[1] = chanRecAvg[1] / (height * width);
+            chanRecAvg[2] = chanRecAvg[2] / (height * width);
+            
+            magElaAvg = magElaAvg / (height * width);
+            chanElaAvg[0] = chanElaAvg[0] / (height * width);
+            chanElaAvg[1] = chanElaAvg[1] / (height * width);
+            chanElaAvg[2] = chanElaAvg[2] / (height * width);
 
-            Apps.setInputStats(chanInMin, chanInMax, inMag);
-          
+            
+            Apps.setInputStats(chanInMin, chanInMax, magIn, chanInAvg, magInAvg);
+            Apps.setRecompStats(chanRecMin, chanRecMax, magRec, chanRecAvg, magRecAvg);
+            Apps.setElaStats(chanElaMin, chanElaMax, magEla, chanElaAvg, magElaAvg);
             
             for (int r = 0; r < height; r++) {
-                for (int c = 0; c < width; c++) {
+                for (int c = 0; c < width; c++) {                	
                     for (int band = 0; band < 3; band++) {
-                        diff[r][c][band] *= scale;
-                        //diff[r][c][band]  = (diff[r][c][band] > 255) ? 255 : (diff[r][c][band] < 0) ? 0 : diff[r][c][band];
+                    	diff[r][c][band] *= scale;
                     }
                 }
             }
