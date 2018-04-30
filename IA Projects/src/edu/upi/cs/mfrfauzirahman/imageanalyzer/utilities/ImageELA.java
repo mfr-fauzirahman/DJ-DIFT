@@ -87,19 +87,19 @@ public class ImageELA extends ImageTools {
             
             int[] chanInMin = {255,255,255};
             int[] chanInMax = {0,0,0};
-            int[] chanInAvg = {0, 0, 0};
+            float[] chanInAvg = {0, 0, 0};
             int[] magIn = {255, 0};
             float magInAvg = 0;
             
             int[] chanRecMin = {255,255,255};
             int[] chanRecMax = {0,0,0};
-            int[] chanRecAvg = {0, 0, 0};
+            float[] chanRecAvg = {0, 0, 0};
             int[] magRec = {255, 0};
             float magRecAvg = 0;
             
             int[] chanElaMin = {255,255,255};
             int[] chanElaMax = {0,0,0};
-            int[] chanElaAvg = {0, 0, 0};
+            float[] chanElaAvg = {0, 0, 0};
             int[] magEla = {255, 0};
             float magElaAvg = 0;
           

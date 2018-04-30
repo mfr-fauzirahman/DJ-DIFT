@@ -8,21 +8,18 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
-
 import javax.imageio.ImageIO;
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -30,15 +27,17 @@ import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
-import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
 import javax.swing.UIManager;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -46,6 +45,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import com.drew.imaging.ImageMetadataReader;
 import com.drew.imaging.ImageProcessingException;
@@ -57,9 +59,10 @@ import com.drew.metadata.exif.ExifThumbnailDirectory;
 import edu.upi.cs.mfrfauzirahman.imageanalyzer.utilities.ImageELA;
 import edu.upi.cs.mfrfauzirahman.imageanalyzer.utilities.ImageMask;
 import edu.upi.cs.mfrfauzirahman.imageanalyzer.utilities.ImageTools;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import javax.swing.JProgressBar;
+import edu.upi.cs.mfrfauzirahman.imageanalyzer.utilities.ComboItem;
+import java.awt.event.ItemListener;
+import java.awt.event.ItemEvent;
+import javax.swing.JSeparator;
 
 
 public class Apps extends JFrame {
@@ -73,10 +76,15 @@ public class Apps extends JFrame {
 	 */
 	
 	public File input = null;
+	private String path = null;
 	public File outputfile = null;
 	public double fileSize = 0;
 	
-	public static int[] MASK_RGB = ImageTools.MaskColor("CYAN");
+	private int taskType = 0;
+	private Task taskEla;
+	private Task taskMask;
+	
+	public static int[] MASK_RGB = ImageTools.MaskColor("RED");
 	public static int errLevel = 20;
 	public static int qualityLevel = 95;
 	public static int maskThreshold = 25;
@@ -133,14 +141,15 @@ public class Apps extends JFrame {
     	labValQ.setText("95%");
     	labValQ.setText("20%");
         TabPanel = new javax.swing.JTabbedPane();
+        TabPanel.setBounds(0, 0, 1010, 670);
         labInput = new javax.swing.JLabel();
         labInput.setHorizontalAlignment(SwingConstants.CENTER);
         TabConfig = new javax.swing.JTabbedPane();
+        TabConfig.setBounds(1016, 470, 255, 200);
         pConfELA = new javax.swing.JPanel();
         labQuality = new javax.swing.JLabel();
         labQuality.setBounds(10, 11, 94, 22);
         sliderQuality = new javax.swing.JSlider();
-        sliderQuality.setMaximum(99);
         sliderQuality.setBounds(10, 44, 230, 22);
         sliderQuality.setMinimum(1);
         sliderQuality.addChangeListener(new ChangeListener() {
@@ -212,7 +221,7 @@ public class Apps extends JFrame {
         btnDefELA.addMouseListener(new MouseAdapter() {
         	@Override
         	public void mouseClicked(MouseEvent e) {
-        		defaultConfigELA();
+        		defConfigELA();
         	}
         });
 
@@ -262,50 +271,60 @@ public class Apps extends JFrame {
         MenuBar.add(menuFile);
         
         mntmSaveRecomp = new JMenuItem("Save Recompressed Image");
+        mntmSaveRecomp.setEnabled(false);
         mntmSaveRecomp.addActionListener(new ActionListener() {
         	public void actionPerformed(ActionEvent e) {
         		mSaveRecompIMG(e);
         	}
         });
+        
+        separator = new JSeparator();
+        menuFile.add(separator);
         menuFile.add(mntmSaveRecomp);
         
         mntmSaveEla = new JMenuItem("Save ELA Result");
+        mntmSaveEla.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		mSaveElaIMG(e);
+        	}
+        });
+        mntmSaveEla.setEnabled(false);
         menuFile.add(mntmSaveEla);
         
         mntmSaveMaskedImage = new JMenuItem("Save Masked Image");
+        mntmSaveMaskedImage.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		mSaveMaskedIMG(e);
+        	}
+        });
+        mntmSaveMaskedImage.setEnabled(false);
         menuFile.add(mntmSaveMaskedImage);
         
+        mntmSaveThumbnail = new JMenuItem("Save Thumbnail Image");
+        mntmSaveThumbnail.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		mSaveThumbIMG(e);
+        	}
+        });
+        mntmSaveThumbnail.setEnabled(false);
+        menuFile.add(mntmSaveThumbnail);
+        
         mntmSaveMetadata = new JMenuItem("Save Metadata");
+        mntmSaveMetadata.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		mSaveMetadata(e);
+        	}
+        });
+        mntmSaveMetadata.setEnabled(false);
         menuFile.add(mntmSaveMetadata);
 
         setJMenuBar(MenuBar);
         
         JTabbedPane TabAnalysis = new JTabbedPane(SwingConstants.TOP);
+        TabAnalysis.setBounds(1016, 0, 255, 245);
         
         TabThumb = new JTabbedPane(JTabbedPane.TOP);
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        layout.setHorizontalGroup(
-        	layout.createParallelGroup(Alignment.LEADING)
-        		.addGroup(layout.createSequentialGroup()
-        			.addComponent(TabPanel, GroupLayout.PREFERRED_SIZE, 1010, GroupLayout.PREFERRED_SIZE)
-        			.addPreferredGap(ComponentPlacement.RELATED)
-        			.addGroup(layout.createParallelGroup(Alignment.LEADING)
-        				.addComponent(TabThumb, GroupLayout.DEFAULT_SIZE, 255, Short.MAX_VALUE)
-        				.addComponent(TabConfig, 0, 0, Short.MAX_VALUE)
-        				.addComponent(TabAnalysis, GroupLayout.PREFERRED_SIZE, 255, GroupLayout.PREFERRED_SIZE))
-        			.addContainerGap())
-        );
-        layout.setVerticalGroup(
-        	layout.createParallelGroup(Alignment.LEADING)
-        		.addGroup(layout.createSequentialGroup()
-        			.addComponent(TabAnalysis, GroupLayout.PREFERRED_SIZE, 291, GroupLayout.PREFERRED_SIZE)
-        			.addPreferredGap(ComponentPlacement.RELATED)
-        			.addComponent(TabThumb, GroupLayout.DEFAULT_SIZE, 167, Short.MAX_VALUE)
-        			.addPreferredGap(ComponentPlacement.RELATED)
-        			.addComponent(TabConfig, GroupLayout.PREFERRED_SIZE, 200, GroupLayout.PREFERRED_SIZE))
-        		.addComponent(TabPanel, GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-        );
+        TabThumb.setBounds(1016, 297, 255, 167);
         
         labThumbSmall = new JLabel("");
         labThumbSmall.setHorizontalAlignment(SwingConstants.CENTER);
@@ -364,8 +383,17 @@ public class Apps extends JFrame {
         btnDefMask.setBounds(173, 133, 67, 23);
         pConfMask.add(btnDefMask);
         
-        comboMaskCol = new JComboBox();
+        comboMaskCol = new JComboBox<ComboItem>();
+        comboMaskCol.addItemListener(new ItemListener() {
+        	public void itemStateChanged(ItemEvent e) {
+        		maskColorChange();
+        	}
+        });
         comboMaskCol.setBounds(10, 102, 230, 20);
+        comboMaskCol.addItem(new ComboItem("Cyan", ImageTools.MaskColor("CYAN")));
+        comboMaskCol.addItem(new ComboItem("Magenta", ImageTools.MaskColor("MAGENTA")));
+        comboMaskCol.addItem(new ComboItem("Yellow", ImageTools.MaskColor("YELLOW")));
+        comboMaskCol.setSelectedIndex(0);
         pConfMask.add(comboMaskCol);
         
         JPanel pDetails = new JPanel();
@@ -395,7 +423,7 @@ public class Apps extends JFrame {
         txtaPath.setLineWrap(true);
         txtaPath.setEditable(false);
         txtaPath.setBackground(UIManager.getColor("Button.background"));
-        txtaPath.setBounds(66, 119, 174, 100);
+        txtaPath.setBounds(66, 119, 174, 85);
         
         labFile = new JLabel("File name");
         labFile.setBounds(10, 11, 45, 14);
@@ -424,10 +452,6 @@ public class Apps extends JFrame {
         labThumbBytes = new JLabel("-");
         labThumbBytes.setBounds(66, 94, 174, 14);
         pDetails.add(labThumbBytes);
-        
-        loadingBar = new JProgressBar();
-        loadingBar.setBounds(10, 238, 230, 14);
-        pDetails.add(loadingBar);
         
         pStatisticsInput = new JPanel();
         TabAnalysis.addTab("Input", null, pStatisticsInput, null);
@@ -462,7 +486,7 @@ public class Apps extends JFrame {
         
         labInAvgMag = new JLabel("0");
         labInAvgMag.setHorizontalAlignment(SwingConstants.CENTER);
-        labInAvgMag.setBounds(166, 136, 74, 14);
+        labInAvgMag.setBounds(166, 161, 74, 14);
         pStatisticsInput.add(labInAvgMag);
         
         label_15 = new JLabel("-");
@@ -500,7 +524,7 @@ public class Apps extends JFrame {
         pStatisticsInput.add(label_20);
         
         labIn = new JLabel("Average Magnitude");
-        labIn.setBounds(10, 136, 146, 14);
+        labIn.setBounds(10, 161, 146, 14);
         pStatisticsInput.add(labIn);
         
         labInMaxG = new JLabel("0");
@@ -519,19 +543,22 @@ public class Apps extends JFrame {
         pStatisticsInput.add(labInMinG);
         
         lblAverageValuer = new JLabel("Average Value (R, G, B)");
-        lblAverageValuer.setBounds(10, 111, 146, 14);
+        lblAverageValuer.setBounds(10, 111, 230, 14);
         pStatisticsInput.add(lblAverageValuer);
         
-        labInAvgR = new JLabel("");
-        labInAvgR.setBounds(166, 111, 18, 14);
+        labInAvgR = new JLabel("0");
+        labInAvgR.setHorizontalAlignment(SwingConstants.CENTER);
+        labInAvgR.setBounds(10, 136, 70, 14);
         pStatisticsInput.add(labInAvgR);
         
-        labInAvgG = new JLabel("");
-        labInAvgG.setBounds(194, 111, 18, 14);
+        labInAvgG = new JLabel("0");
+        labInAvgG.setHorizontalAlignment(SwingConstants.CENTER);
+        labInAvgG.setBounds(90, 136, 70, 14);
         pStatisticsInput.add(labInAvgG);
         
-        labInAvgB = new JLabel("");
-        labInAvgB.setBounds(222, 111, 18, 14);
+        labInAvgB = new JLabel("0");
+        labInAvgB.setHorizontalAlignment(SwingConstants.CENTER);
+        labInAvgB.setBounds(170, 136, 70, 14);
         pStatisticsInput.add(labInAvgB);
         
         panel = new JPanel();
@@ -567,7 +594,7 @@ public class Apps extends JFrame {
         
         labRecAvgMag = new JLabel("0");
         labRecAvgMag.setHorizontalAlignment(SwingConstants.CENTER);
-        labRecAvgMag.setBounds(166, 136, 74, 14);
+        labRecAvgMag.setBounds(166, 161, 74, 14);
         panel.add(labRecAvgMag);
         
         label_9 = new JLabel("-");
@@ -605,7 +632,7 @@ public class Apps extends JFrame {
         panel.add(label_17);
         
         label_18 = new JLabel("Average Magnitude");
-        label_18.setBounds(10, 136, 146, 14);
+        label_18.setBounds(10, 161, 146, 14);
         panel.add(label_18);
         
         labRecMaxG = new JLabel("0");
@@ -624,19 +651,22 @@ public class Apps extends JFrame {
         panel.add(labRecMinG);
         
         label_23 = new JLabel("Average Value (R, G, B)");
-        label_23.setBounds(10, 111, 146, 14);
+        label_23.setBounds(10, 111, 230, 14);
         panel.add(label_23);
         
-        labRecAvgR = new JLabel("");
-        labRecAvgR.setBounds(166, 111, 18, 14);
+        labRecAvgR = new JLabel("0");
+        labRecAvgR.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecAvgR.setBounds(10, 136, 70, 14);
         panel.add(labRecAvgR);
         
-        labRecAvgG = new JLabel("");
-        labRecAvgG.setBounds(194, 111, 18, 14);
+        labRecAvgG = new JLabel("0");
+        labRecAvgG.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecAvgG.setBounds(90, 136, 70, 14);
         panel.add(labRecAvgG);
         
-        labRecAvgB = new JLabel("");
-        labRecAvgB.setBounds(222, 111, 18, 14);
+        labRecAvgB = new JLabel("0");
+        labRecAvgB.setHorizontalAlignment(SwingConstants.CENTER);
+        labRecAvgB.setBounds(170, 136, 70, 14);
         panel.add(labRecAvgB);
         
         pStatisticsELA = new JPanel();
@@ -672,7 +702,7 @@ public class Apps extends JFrame {
         
         labElaAvgMag = new JLabel("0");
         labElaAvgMag.setHorizontalAlignment(SwingConstants.CENTER);
-        labElaAvgMag.setBounds(166, 136, 74, 14);
+        labElaAvgMag.setBounds(166, 161, 74, 14);
         pStatisticsELA.add(labElaAvgMag);
         
         label_34 = new JLabel("-");
@@ -710,7 +740,7 @@ public class Apps extends JFrame {
         pStatisticsELA.add(label_40);
         
         label_41 = new JLabel("Average Magnitude");
-        label_41.setBounds(10, 136, 146, 14);
+        label_41.setBounds(10, 161, 146, 14);
         pStatisticsELA.add(label_41);
         
         labElaMaxG = new JLabel("0");
@@ -732,22 +762,23 @@ public class Apps extends JFrame {
         label_45.setBounds(10, 111, 146, 14);
         pStatisticsELA.add(label_45);
         
-        labElaAvgR = new JLabel("");
+        labElaAvgR = new JLabel("0");
+        labElaAvgR.setHorizontalAlignment(SwingConstants.CENTER);
         labElaAvgR.setHorizontalTextPosition(SwingConstants.CENTER);
-        labElaAvgR.setBounds(166, 111, 18, 14);
+        labElaAvgR.setBounds(10, 136, 70, 14);
         pStatisticsELA.add(labElaAvgR);
         
-        labElaAvgB = new JLabel("");
+        labElaAvgB = new JLabel("0");
+        labElaAvgB.setHorizontalAlignment(SwingConstants.CENTER);
         labElaAvgB.setHorizontalTextPosition(SwingConstants.CENTER);
-        labElaAvgB.setBounds(222, 111, 18, 14);
+        labElaAvgB.setBounds(170, 136, 70, 14);
         pStatisticsELA.add(labElaAvgB);
         
-        labElaAvgG = new JLabel("");
+        labElaAvgG = new JLabel("0");
         labElaAvgG.setHorizontalTextPosition(SwingConstants.CENTER);
         labElaAvgG.setHorizontalAlignment(SwingConstants.CENTER);
-        labElaAvgG.setBounds(194, 111, 18, 14);
+        labElaAvgG.setBounds(90, 136, 70, 14);
         pStatisticsELA.add(labElaAvgG);
-        getContentPane().setLayout(layout);
         
         spMetadata = new JScrollPane();
         spMetadata.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
@@ -775,6 +806,16 @@ public class Apps extends JFrame {
         //tMetadata.getColumnModel().getColumn(2).setCellRenderer(new WordWrapCellRenderer());
         
         spMetadata.setViewportView(tMetadata);
+        getContentPane().setLayout(null);
+        getContentPane().add(TabPanel);
+        getContentPane().add(TabThumb);
+        getContentPane().add(TabConfig);
+        getContentPane().add(TabAnalysis);
+        
+        loadingBar = new JProgressBar();
+        loadingBar.setStringPainted(true);
+        loadingBar.setBounds(1020, 256, 244, 30);
+        getContentPane().add(loadingBar);
         
         pack();
         setLocationRelativeTo(null);
@@ -811,7 +852,9 @@ public class Apps extends JFrame {
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
 			public void run() {
+            	
                 new Apps().setVisible(true);
+                loadingBar.setString("Waiting");
             }
         });
     }
@@ -854,7 +897,7 @@ public class Apps extends JFrame {
     private JLabel lblMaskColor;
     private JButton btnConfMask;
     private JButton btnDefMask;
-    private JComboBox comboMaskCol;
+    private JComboBox<ComboItem> comboMaskCol;
     private JTabbedPane TabThumb;
     private JLabel labThumbSmall;
     private JLabel lblThumbnail;
@@ -932,23 +975,35 @@ public class Apps extends JFrame {
     private JMenuItem mntmSaveRecomp;
     private JMenuItem mntmSaveMetadata;
     private static JProgressBar loadingBar;
+    private JMenuItem mntmSaveThumbnail;
+    private JSeparator separator;
     
     /**
      * Application Methods
      */
     void mOpenIMG(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mOpenIMGActionPerformed
-        //Create a file chooser
+    	mntmSaveRecomp.setEnabled(false);
+    	mntmSaveEla.setEnabled(false);
+    	mntmSaveMaskedImage.setEnabled(false);
+    	mntmSaveMetadata.setEnabled(false);
+    	mntmSaveThumbnail.setEnabled(false);
+    	
         final JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileNameExtensionFilter("Image Files (JPG/JPEG/PNG)", "jpg", "jpeg", "png"));
+        if(path != null) {
+        	fc.setCurrentDirectory(new File(path));
+        }
+        
+        fc.setFileFilter(new FileNameExtensionFilter("Image files", ImageIO.getReaderFileSuffixes()));
         int result = fc.showOpenDialog(MenuBar);
         if (result == JFileChooser.APPROVE_OPTION) {
         	clearTemp();
         	
             input = fc.getSelectedFile();
+            path = input.getAbsolutePath();
             
             try {
             	imgFormat = FilenameUtils.getExtension(input.getName());
-            	FileUtils.copyFile(input, new File("data/input.jpg"));
+            	FileUtils.copyFile(input, new File("data/input."+imgFormat));
             	//FileUtils.copyFile(input, new File("data/input."+imgFormat));
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -970,15 +1025,16 @@ public class Apps extends JFrame {
                 Logger.getLogger(Apps.class.getName()).log(Level.SEVERE, null, ex);
             }
             
-            applyMask();
             chkThumb();
             setThumb();
             if(thumbExists == true) {
             	labThumbStatus.setText("Available");
             	labThumbBytes.setText(thumbLen + " bytes");
+            	mntmSaveThumbnail.setEnabled(true);
             }else {
             	labThumbStatus.setText("Not Available");
             	labThumbBytes.setText("-");
+            	mntmSaveThumbnail.setEnabled(false);
             }
             txtaPath.setText(input.getPath());
             labFileNameVal.setText(input.getName());
@@ -991,17 +1047,98 @@ public class Apps extends JFrame {
         
     void mSaveRecompIMG(ActionEvent evt) {
     	final JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileNameExtensionFilter("Image Files (JPG/JPEG/PNG)", "jpg", "jpeg", "png"));
+        fc.setFileFilter(new FileNameExtensionFilter("JPG Image (JPG)", "jpg"));
         int result = fc.showSaveDialog(MenuBar);
         if (result == JFileChooser.APPROVE_OPTION) {
         	try {
-				FileUtils.copyFile(new File("data/recompressed.jpg"), fc.getSelectedFile());
+				FileUtils.copyFile(new File("data/recompressed.jpg"), new File(fc.getSelectedFile()+".jpg"));
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				JOptionPane.showMessageDialog(null, "Unexpected error occured when trying to save recompressed image.");
 			}
         }
     }
+    
+    void mSaveElaIMG(ActionEvent evt) {
+    	final JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new FileNameExtensionFilter("JPG Image (JPG)", "jpg"));
+        int result = fc.showSaveDialog(MenuBar);
+        if (result == JFileChooser.APPROVE_OPTION) {
+        	try {
+				FileUtils.copyFile(new File("data/ELA.jpg"), new File(fc.getSelectedFile()+".jpg"));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(null, "Unexpected error occured when trying to save recompressed image.");
+			}
+        }
+    }
+    
+    void mSaveMaskedIMG(ActionEvent evt) {
+    	final JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new FileNameExtensionFilter("JPG Image (JPG)", "jpg"));
+        int result = fc.showSaveDialog(MenuBar);
+        if (result == JFileChooser.APPROVE_OPTION) {
+        	try {
+				FileUtils.copyFile(new File("data/masked.jpg"), new File(fc.getSelectedFile()+".jpg"));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(null, "Unexpected error occured when trying to save recompressed image.");
+			}
+        }
+    }
+    
+    void mSaveThumbIMG(ActionEvent evt) {
+    	final JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new FileNameExtensionFilter("JPG Image (JPG)", "jpg"));
+        int result = fc.showSaveDialog(MenuBar);
+        if (result == JFileChooser.APPROVE_OPTION) {
+        	try {
+				FileUtils.copyFile(new File("data/thumbnail.jpg"), new File(fc.getSelectedFile()+".jpg"));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(null, "Unexpected error occured when trying to save recompressed image.");
+			}
+        }
+    }
+    
+    void mSaveMetadata(ActionEvent evt) {
+    	final JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new FileNameExtensionFilter("Tab Separated Values (TSV)", "tsv"));
+        int result = fc.showSaveDialog(MenuBar);
+        if (result == JFileChooser.APPROVE_OPTION) {
+        	toExcel(tMetadata, new File(fc.getSelectedFile()+".tsv"));
+        }
+    }
+    
+
+	public void toExcel(JTable table, File file){
+	    try{
+	        TableModel model = table.getModel();
+	        FileWriter excel = new FileWriter(file);
+	
+	        for(int i = 0; i < model.getColumnCount(); i++){
+	            excel.write(model.getColumnName(i) + "\t");
+	        }
+	
+	        excel.write("\n");
+	
+	        for(int i=0; i< model.getRowCount(); i++) {
+	            for(int j=0; j < model.getColumnCount(); j++) {
+	                excel.write(model.getValueAt(i,j).toString()+"\t");
+	            }
+	            excel.write("\n");
+	        }
+	
+	        excel.close();
+	
+	    }catch(IOException e){ System.out.println(e); }
+	}
+
+    
     /*
      *	Application methods
      */
@@ -1016,9 +1153,10 @@ public class Apps extends JFrame {
             	tmodel.addRow(new Object[]{directory.getName(), tag.getTagName(), tag.getDescription()});
             }
         }
+        mntmSaveMetadata.setEnabled(true);
     }    
     
-    private void runAnalysis() throws IOException, ImageProcessingException{  
+    private void runStart() throws IOException, ImageProcessingException{  
     	
         imgWidth = imgInput.getWidth();        
         imgHeight = imgInput.getHeight();
@@ -1028,7 +1166,8 @@ public class Apps extends JFrame {
         	ratio = ((double) labWidth) / ((double) imgWidth);
         	imgWidth = (int) (imgWidth * ratio);
         	imgHeight = (int) (imgHeight * ratio);
-        }else       	
+        }
+        
         if(imgHeight > labHeight){
         	ratio = ((double) labHeight) / ((double) imgHeight);
         	imgWidth = (int) (imgWidth * ratio);
@@ -1038,56 +1177,38 @@ public class Apps extends JFrame {
         img = imgInput.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
         imgIco = new ImageIcon(img);
         labInput.setIcon(imgIco);
-        
-        /*
-         * if(compLevel != 1) {
-        	imgProcess = ImageELA.GetCompressedImage(imgInput, compLevel);
-        }else {imgProcess = imgInput;}
-        */
-        setTitle("Digital Image Forensics Tools (Status: Rebuilding Image @ "+qualityLevel+"% Quality Level...)");
+    }
+    
+    private void runRecomp() throws IOException {
         imgRecomp = ImageELA.GetCompressedImage(imgInput, (float) qualityLevel / 100);
         img = imgRecomp.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
         imgIco = new ImageIcon(img);
         labComp.setIcon(imgIco);
         outputfile = new File("data/recompressed.jpg");
         //outputfile = new File("data/recompressed."+imgFormat);
-        ImageIO.write(imgRecomp, imgFormat, outputfile);
-        
-        setTitle("Digital Image Forensics Tools (Status: Processing Error Level Analysis @ "+errLevel+" Error Scale...)");
-        imgELA = ImageELA.GetDifferenceImage(imgInput, imgRecomp, errLevel);
-        img = imgELA.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
+        ImageIO.write(imgRecomp, "jpg", outputfile);
+        mntmSaveRecomp.setEnabled(true);
+    }
+    
+    private void runELA() throws IOException {
+         imgELA = ImageELA.GetDifferenceImage(imgInput, imgRecomp, errLevel);
+         img = imgELA.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
+         imgIco = new ImageIcon(img);
+         labELA.setIcon(imgIco);
+         outputfile = new File("data/ELA.jpg");
+         //outputfile = new File("data/ELA."+imgFormat);
+         ImageIO.write(imgELA, "jpg", outputfile);
+         mntmSaveEla.setEnabled(true);
+    }
+     
+    private void runMask() throws IOException {
+    	imgMask = ImageMask.MaskImages(imgInput, imgELA, MASK_RGB, maskThreshold, errLevel);
+        img = imgMask.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
         imgIco = new ImageIcon(img);
-        labELA.setIcon(imgIco);
-        outputfile = new File("data/ELA."+imgFormat);
-        ImageIO.write(imgELA, imgFormat, outputfile);
-        
-
-        applyMask();
-        
-        callGC();
-    }
-    
-    public void applyConfigELA() throws ImageProcessingException, IOException {
-    	if(input != null) {
-    		labELA.setIcon(null);
-        	runAnalysis();
-        	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
-    	}
-    }
-    
-    public void defaultConfigELA() {
-    	
-    	sliderQuality.setValue(95);
-    	sliderErrScale.setValue(20);
-    	if(input != null) {
-	    	try {
-				runAnalysis();
-			} catch (ImageProcessingException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-	    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
-    	}
+        labMask.setIcon(imgIco);
+        outputfile = new File("data/masked.jpg");
+        ImageIO.write(imgMask, "jpg", outputfile);
+        mntmSaveMaskedImage.setEnabled(true);
     }
     
     public void updQVal() {
@@ -1102,36 +1223,54 @@ public class Apps extends JFrame {
     	labValE.setText(String.valueOf(sliderErrScale.getValue())+"%");
     }
     
-    public void runMask() {
-    	imgMask = ImageMask.MaskImages(imgInput, imgELA, MASK_RGB, maskThreshold, errLevel);
-        img = imgMask.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
-        imgIco = new ImageIcon(img);
-        labMask.setIcon(imgIco);
-        callGC();
-    }
-    
-    public void applyMask() {
-    	if(input != null) {
-    		setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
-        	runMask();
-        	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
-    	}
-    }
-    
-    public void defMask() {
-    	if(input != null) {
-	    	setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
-	    	sliderThresh.setValue(25);
-	    	runMask();
-	    	setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
-    	}
-    }
-    
     public void updTVal() {
     	maskThreshold = sliderThresh.getValue();
     	sliderThresh.setToolTipText(String.valueOf(sliderThresh.getValue()));   	
     	labValT.setText(String.valueOf(sliderThresh.getValue()));
     }
+    
+    public void applyConfigELA() throws ImageProcessingException, IOException {
+    	if(input != null) {
+    		loadingBar.setIndeterminate(true);
+    		labELA.setIcon(null);
+    		taskType = 1;
+    		taskEla = new Task();
+    		taskEla.execute();
+    	}
+    }
+    
+    public void defConfigELA() {
+    	sliderQuality.setValue(95);
+    	sliderErrScale.setValue(20);
+    	if(input != null) {
+    		loadingBar.setIndeterminate(true);
+    		taskType = 1;
+    		taskEla = new Task();
+    		taskEla.execute();
+    	}
+    }
+    
+    public void applyMask() {
+    	if(input != null) {
+    		loadingBar.setIndeterminate(true);
+    		taskType = 2;
+    		taskMask = new Task();
+    		taskMask.execute();    		
+        	//runMask();
+    	}
+    }
+    
+    public void defMask() {
+    	if(input != null) {
+    		loadingBar.setIndeterminate(true);
+	    	sliderThresh.setValue(25);
+	    	taskType = 2;
+    		taskMask = new Task();
+    		taskMask.execute();
+	    	//runMask();
+    	}
+    }
+        
     
     public String formatSize(long bytes) {
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.ITALY);
@@ -1150,6 +1289,7 @@ public class Apps extends JFrame {
         return format;
     }
     
+
     public void chkThumb() {
     	thumbExists = false;
     	
@@ -1165,17 +1305,34 @@ public class Apps extends JFrame {
     	}
     }
     
+
     public void setThumb() {
     	if(thumbExists == true) {
     		try {
     			labThumbSmall.setText(null);
         		labThumbBig.setText(null);
 				imgThumb = ImageIO.read(new File("data/thumbnail.jpg"));
-				img = imgThumb.getScaledInstance(imgThumb.getWidth(), imgThumb.getHeight(), Image.SCALE_SMOOTH);
+				
+				double ratio = 0;
+				if(imgThumb.getWidth() > imgThumb.getHeight()) {
+					ratio = ((double) labHeight) / ((double) imgThumb.getHeight());
+				}else {
+					ratio = ((double) labWidth) / ((double) imgThumb.getWidth());
+				}
+				System.out.println(imgThumb.getWidth());
+				System.out.println(labWidth);
+				System.out.println(imgThumb.getHeight());
+				System.out.println(labHeight);
+				System.out.println(ratio);
+				
+	        	int thumbScaleWidth = (int) (imgThumb.getWidth() * ratio);
+	        	int thumbScaleHeight = (int) (imgThumb.getHeight() * ratio);
+	        	
+	        	img = imgThumb.getScaledInstance(labThumbSmall.getWidth(), labThumbSmall.getHeight(), Image.SCALE_SMOOTH);
 		        imgIco = new ImageIcon(img);
 		        labThumbSmall.setIcon(imgIco);        
 		        
-		        img = imgThumb.getScaledInstance(imgWidth, imgHeight, Image.SCALE_SMOOTH);
+		        img = imgThumb.getScaledInstance(thumbScaleWidth, thumbScaleHeight, Image.SCALE_SMOOTH);
 		        imgIco = new ImageIcon(img);
 		        labThumbBig.setIcon(imgIco);
 			} catch (IOException e) {
@@ -1190,6 +1347,7 @@ public class Apps extends JFrame {
     	}
     }
     
+    
     public void clearTemp(){
     	if(outputfile != null) {
     		File dir = outputfile.getParentFile();
@@ -1199,7 +1357,7 @@ public class Apps extends JFrame {
     	}
     }
 
-    public static void setInputStats(int[] minparams, int[] maxparams, int[] mag, int[] avgparams, float avgmag) {
+    public static void setInputStats(int[] minparams, int[] maxparams, int[] mag, float[] avgparams, float avgmag) {
     	labInMinR.setText(minparams[0]+"");
     	labInMinG.setText(minparams[1]+"");
     	labInMinB.setText(minparams[2]+"");
@@ -1218,7 +1376,8 @@ public class Apps extends JFrame {
     	labInAvgMag.setText(avgmag+"");
     }
     
-    public static void setRecompStats(int[] minparams, int[] maxparams, int[] mag, int[] avgparams, float avgmag) {
+    
+    public static void setRecompStats(int[] minparams, int[] maxparams, int[] mag, float[] avgparams, float avgmag) {
     	labRecMinR.setText(minparams[0]+"");
     	labRecMinG.setText(minparams[1]+"");
     	labRecMinB.setText(minparams[2]+"");
@@ -1237,7 +1396,8 @@ public class Apps extends JFrame {
     	labRecAvgMag.setText(avgmag+"");
     }
     
-    public static void setElaStats(int[] minparams, int[] maxparams, int[] mag, int[] avgparams, float avgmag) {
+    
+    public static void setElaStats(int[] minparams, int[] maxparams, int[] mag, float[] avgparams, float avgmag) {
     	labElaMinR.setText(minparams[0]+"");
     	labElaMinG.setText(minparams[1]+"");
     	labElaMinB.setText(minparams[2]+"");
@@ -1259,12 +1419,56 @@ public class Apps extends JFrame {
     	
     	labElaAvgMag.setText(avgmag+"");
     }
-       
-    public static void setProgress(int progress) {
-    	loadingBar.setValue(progress);
+ 
+    public void maskColorChange() {
+    	Object item = comboMaskCol.getSelectedItem();
+    	MASK_RGB = ((ComboItem)item).getValue();
     }
     
     public void callGC() {
     	System.gc();
     }
+    
+    class Task extends SwingWorker<Void, String> {
+        /*
+         * Main task. Executed in background thread.
+         */
+        @Override
+        public Void doInBackground() throws ImageProcessingException, IOException {
+        	if(taskType == 1) {
+        		runStart();
+        		loadingBar.setString("Building Recompressed Image");
+        		setTitle("Digital Image Forensics Tools (Status: Rebuilding Image @ "+qualityLevel+"% Quality Level...)");
+        		runRecomp();
+        		loadingBar.setString("Processing ELA Image");
+        		setTitle("Digital Image Forensics Tools (Status: Processing Error Level Analysis @ "+errLevel+" Error Scale...)");
+        		runELA();
+        		
+        		sliderThresh.setValue((int) Float.parseFloat(labElaAvgMag.getText()));
+        		loadingBar.setString("Processing Image Mask");
+        		setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
+        		runMask();
+        	}else if (taskType == 2){
+        		loadingBar.setString("Processing Image Mask");
+        		setTitle("Digital Image Forensics Tools (Status: Processing Image Mask...)");
+        		runMask();
+        	}
+            return null;
+        }
+        
+        /*
+         * Executed in event dispatching thread
+         */
+        
+        @Override
+        public void done() {
+        	loadingBar.setIndeterminate(false);
+        	loadingBar.setValue(100);
+        	loadingBar.setString("Completed");
+            taskType = 0;
+            callGC();
+            setTitle("Digital Image Forensics Tools (Completed: "+input.getName()+")");
+        }
+    }
+    
 }
