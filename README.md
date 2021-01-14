@@ -1,5 +1,5 @@
 # DJ-DIFT (Desktop Java-based Digital Image Forensic Tool)
-A tool for image forensics which utilize ELA and image masking.
+A tool made for my undergraduate thesis in digital forensics, specifically digital image forensices, utilize ELA (Error Level Analysis) and image masking.
 * Includes metadata and thumbnail reader for any supported image format by its running JRE.
 * Designed in Java8, tested in Java8 and Java10.
 * Based on JAVA ELA project by Robert Streetman.
